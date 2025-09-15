@@ -9,7 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserInterface } from '@repo/dbschema';
 import { Repository } from 'typeorm';
-import type { CreateUserDto } from '../DTO/users.dto';
+import type { CreateUserDto, UpdateUserDto } from '../DTO/users.dto';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -53,6 +53,54 @@ export class UsersService {
         throw error;
       }
       throw new InternalServerErrorException('Unexpected error occurred');
+    }
+  }
+
+  async updateUser(id: number, updateInfo: UpdateUserDto): Promise<string> {
+    try {
+      const needtoUpdateUser: Partial<User> = {};
+      const dbUser = await this.userRepo.findOneBy({ id });
+      if (!dbUser) {
+        throw new BadRequestException('User not found');
+      }
+
+      if (updateInfo.password) {
+        const oldPasswordCheck = await bcrypt.compare(
+          updateInfo.password,
+          dbUser?.password,
+        );
+
+        if (oldPasswordCheck) {
+          throw new BadRequestException(
+            'New password must be different from the old one',
+          );
+        }
+        const newPassword = await bcrypt.hash(updateInfo.password, 10);
+        needtoUpdateUser.password = newPassword;
+      }
+      if (updateInfo.email && updateInfo.email !== dbUser?.email) {
+        const emailFindUser = await this.userRepo.findOneBy({
+          email: updateInfo.email,
+        });
+        if (emailFindUser?.email && emailFindUser.id !== id) {
+          throw new BadRequestException('email id exists');
+        }
+        needtoUpdateUser.email = updateInfo.email;
+      }
+      if (updateInfo.name && updateInfo.name !== dbUser?.name) {
+        needtoUpdateUser.name = updateInfo.name;
+      }
+      if (Object.keys(needtoUpdateUser).length == 0) {
+        throw new BadRequestException('No changes provided');
+      }
+      const updatedUser = await this.userRepo.update(id, needtoUpdateUser);
+      console.log(updatedUser);
+      return 'user updated';
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Unexpected error occured');
     }
   }
 }
