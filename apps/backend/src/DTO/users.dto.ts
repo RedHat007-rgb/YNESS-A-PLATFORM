@@ -3,3 +3,8 @@ export type CreateUserDto = {
   name: string;
   password: string;
 };
+export type UpdateUserDto = {
+  email?: string;
+  name?: string;
+  password?: string;
+};
