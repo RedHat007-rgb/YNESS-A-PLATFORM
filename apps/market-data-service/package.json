@@ -1,0 +1,7 @@
+{
+  "name": "market-data-service",
+  "scripts": {
+    "dev": "go build -o dist/market-data-service . && go run .",
+    "build": "go build -o dist/market-data-service ."
+  }
+}
